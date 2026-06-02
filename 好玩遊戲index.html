@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>肉眼數據流：AI 模型的資料清理挑戰 - 網頁版</title>
+    <!-- Tailwind CSS for modern aesthetics -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for professional high-contrast typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Noto Sans TC', 'Poppins', sans-serif;
+        }
+        /* Custom scrollbar for desktop card tray */
+        ::-webkit-scrollbar {
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-between p-4 relative overflow-x-hidden selection:bg-sky-500 selection:text-white">
+
+    <!-- Header Navigation Progress -->
+    <header class="w-full max-w-4xl flex items-center justify-between border-b border-slate-800 pb-4 mb-4 z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-500 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-sky-500/20">
+                <i class="fa-solid fa-broom"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg md:text-xl tracking-tight bg-gradient-to-r from-sky-400 to-indigo-300 bg-clip-text text-transparent">肉眼數據流</h1>
+                <p class="text-xs text-slate-400">大數據與政策資料清理挑戰</p>
+            </div>
+        </div>
+        
+        <!-- Steps Indicators -->
+        <div class="flex items-center gap-2 text-xs md:text-sm font-semibold text-slate-500">
+            <span id="step-ind-1" class="px-2 py-1 rounded bg-slate-800 text-slate-400 transition-colors">1. 診斷除蟲</span>
+            <span class="text-slate-700">➔</span>
+            <span id="step-ind-2" class="px-2 py-1 rounded bg-slate-800 text-slate-500 transition-colors">2. 趨勢排序</span>
+            <span class="text-slate-700">➔</span>
+            <span id="step-ind-3" class="px-2 py-1 rounded bg-slate-800 text-slate-500 transition-colors">3. 核心反思</span>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="w-full max-w-4xl bg-slate-900/60 backdrop-blur-md border border-slate-800/80 rounded-2xl p-6 flex-grow flex flex-col justify-between shadow-2xl relative overflow-hidden min-h-[500px] z-10">
+        
+        <!-- Glowing Ambient blob -->
+        <div class="absolute -top-32 -left-32 w-80 h-80 rounded-full bg-sky-500/10 blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-32 -right-32 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
+
+        <!-- STAGE 0: SPLASH WELCOME SCREEN -->
+        <section id="stage-welcome" class="flex flex-col items-center justify-center text-center py-10">
+            <div class="relative mb-6">
+                <div class="w-32 h-32 rounded-full bg-slate-800 border-4 border-sky-500/20 flex items-center justify-center shadow-inner overflow-hidden">
+                    <img id="robot-img" src="https://static.vecteezy.com/system/resources/previews/055/789/816/non_2x/cute-cartoon-robot-with-smiling-face-artificial-intelligence-friendly-android-digital-illustration-futuristic-technology-sci-fi-bot-ai-concept-modern-automation-character-design-vector.jpg" alt="AI Robot with bellyache" class="w-full h-full object-cover">
+                </div>
+                <span class="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full font-bold shadow-lg animate-bounce">
+                    <i class="fa-solid fa-heart-crack"></i> 肚子痛中
+                </span>
+            </div>
+            
+            <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-3">糟糕！AI 吞到垃圾資料，肚子痛了！</h2>
+            <p class="text-slate-400 max-w-xl text-sm md:text-base leading-relaxed mb-6">
+                我們的機器學習模型剛剛吸收了台灣各縣市的「少子化與寵物數」大數據，但因為吃到了 <strong class="text-amber-400">極端值、遺失值及格式混亂的「髒資料」</strong>，現在無法正常運作。請化身數據工程師拯救它！
+            </p>
+
+            <button onclick="startGame()" class="px-8 py-4 bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-sky-500/30 hover:shadow-sky-500/40 hover:scale-[1.03] transition-all flex items-center gap-3 text-lg">
+                <i class="fa-solid fa-stethoscope"></i> 開始 AI 診斷挑戰
+            </button>
+        </section>
+
+        <!-- STAGE 1: DIAGNOSTIC (SELECT 5 DIRTY CARDS) -->
+        <section id="stage-diagnostic" class="hidden flex flex-col justify-between h-full">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="text-sky-400">第一關：</span> AI 的肚子痛診斷
+                    </h2>
+                    <p class="text-xs text-slate-400">限時 30 秒：用肉眼找出 <strong>5 張</strong> 隱含極端值、遺失值或邏輯謬誤的髒資料卡牌並點擊選取。</p>
+                </div>
+                <!-- Status Indicators -->
+                <div class="flex gap-4 self-stretch md:self-auto justify-between">
+                    <div class="bg-slate-800/80 px-4 py-2 rounded-xl text-sm border border-slate-700/50 flex items-center gap-2 min-w-[120px]">
+                        <i class="fa-solid fa-clock text-amber-400"></i> 剩餘時間: <span id="timer-1" class="font-mono font-bold text-amber-400 text-lg">30</span> 秒
+                    </div>
+                    <div class="bg-slate-800/80 px-4 py-2 rounded-xl text-sm border border-slate-700/50 flex items-center gap-2">
+                        <i class="fa-solid fa-bug text-sky-400"></i> 已選: <span id="count-selected" class="font-bold text-sky-400 text-lg">0</span> / 5
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards Grid -->
+            <div id="grid-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 my-4">
+                <!-- Cards will be populated dynamically via JavaScript -->
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
+                <button onclick="submitDiagnostic()" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i> 遞交診斷結果
+                </button>
+            </div>
+        </section>
+
+        <!-- STAGE 2: SORTING (SORT 7 CLEAN CARDS ASCENDING) -->
+        <section id="stage-sorting" class="hidden flex flex-col justify-between h-full">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <span class="text-sky-400">第二關：</span> 實體數據排序
+                    </h2>
+                    <p class="text-xs text-slate-400">限時 20 秒：利用洗乾淨的 7 張資料，依 <strong>「寵物登記數（少➔多）」</strong> 點擊下方卡牌放入空位，拼出視覺化趨勢。</p>
+                </div>
+                <div class="bg-slate-800/80 px-4 py-2 rounded-xl text-sm border border-slate-700/50 flex items-center gap-2 self-stretch md:self-auto justify-center">
+                    <i class="fa-solid fa-clock text-amber-400"></i> 剩餘時間: <span id="timer-2" class="font-mono font-bold text-amber-400 text-lg">20</span> 秒
+                </div>
+            </div>
+
+            <!-- Sorting Target Slots -->
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800/60 my-4">
+                <p class="text-xs font-semibold text-slate-400 mb-2 flex justify-between">
+                    <span>【排序目標：寵物貓狗登記數由少到多】</span>
+                    <span class="text-indigo-400">少 ➔ ➔ ➔ ➔ 多</span>
+                </p>
+                <div id="sort-slots" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                    <!-- 7 Empty target slots -->
+                    <div class="slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-xs text-slate-600 font-bold transition-all" data-index="0">位置 1</div>
+                    <div class="slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-xs text-slate-600 font-bold transition-all" data-index="1">位置 2</div>
+                    <div class="slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-xs text-slate-600 font-bold transition-all" data-index="2">位置 3</div>
+                    <div class="slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-xs text-slate-600 font-bold transition-all" data-index="3">位置 4</div>
+                    <div class="slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-xs text-slate-600 font-bold transition-all" data-index="4">位置 5</div>
+                    <div class="slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-xs text-slate-600 font-bold transition-all" data-index="5">位置 6</div>
+                    <div class="slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-xs text-slate-600 font-bold transition-all" data-index="6">位置 7</div>
+                </div>
+            </div>
+
+            <!-- Available clean cards deck -->
+            <div class="mb-4">
+                <p class="text-xs font-semibold text-slate-400 mb-2">【可用的乾淨卡牌組 (請點擊放入上方空位)】</p>
+                <div id="deck-clean" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+                    <!-- Clean cards filled here -->
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-4 border-t border-slate-800">
+                <button onclick="resetSorting()" class="text-slate-400 hover:text-white text-sm font-semibold flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-left"></i> 全部重排
+                </button>
+                <button onclick="submitSorting()" class="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-chart-line"></i> 送出排序並分析
+                </button>
+            </div>
+        </section>
+
+        <!-- STAGE 3: CORE REFLECTION (MULTIPLE CHOICE WITH CITATION) -->
+        <section id="stage-reflection" class="hidden flex flex-col justify-between h-full">
+            <div>
+                <h2 class="text-xl font-bold text-white flex items-center gap-2 mb-2">
+                    <span class="text-sky-400">第三關：</span> 終極數據素養反思
+                </h2>
+                <div class="bg-indigo-950/40 border border-indigo-900/60 p-4 rounded-xl mb-4">
+                    <p class="text-sm md:text-base text-indigo-200 font-medium">
+                        📊 <b>排序分析發現：</b><br>
+                        整理後的數據顯示出一個驚人的趨勢 —— 「寵物貓狗登記數越高的縣市，新生兒出生率往往越低（呈現負相關關係）。」
+                    </p>
+                </div>
+                
+                <h3 class="text-base md:text-lg font-bold text-white mb-4">
+                    💡 這代表「現代人養毛小孩，直接導致了少子化」嗎？請選擇最具備大數據素養的解讀：
+                </h3>
+
+                <!-- Quiz Options -->
+                <div class="flex flex-col gap-3 mb-6">
+                    <button onclick="selectOption('A')" id="option-A" class="option-btn text-left p-4 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-850 hover:border-slate-600 transition-all flex items-start gap-3">
+                        <span class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-sm text-slate-300 mt-0.5 shrink-0">A</span>
+                        <div>
+                            <p class="font-semibold text-white text-sm md:text-base">是的，兩者具備因果關係！</p>
+                            <p class="text-xs text-slate-400 mt-1">現代人把時間與金錢資源完全轉移到毛小孩身上，取代了繁衍後代的動機，因此養寵物是少子化主因。</p>
+                        </div>
+                    </button>
+                    <button onclick="selectOption('B')" id="option-B" class="option-btn text-left p-4 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-850 hover:border-slate-600 transition-all flex items-start gap-3">
+                        <span class="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-sm text-slate-300 mt-0.5 shrink-0">B</span>
+                        <div>
+                            <p class="font-semibold text-white text-sm md:text-base">不是！相關性不等於因果關係，且最新實證發現寵物反而是生育的「試金石」。</p>
+                            <p class="text-xs text-slate-400 mt-1">兩者的波動主因是由「都市化程度（高房價與高壓）」這隻隱藏的第三隻手（第三變數）造成假性相關。且最新大數據顯示，養寵物家庭後續生育機率更高！</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4 border-t border-slate-800">
+                <button id="btn-submit-quiz" disabled onclick="submitQuiz()" class="px-8 py-3 bg-slate-700 text-slate-400 font-bold rounded-xl cursor-not-allowed transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-graduation-cap"></i> 遞交反思回答
+                </button>
+            </div>
+        </section>
+
+        <!-- STAGE 4: RESULT SCREEN (SUMMARY & RECONCILIATION) -->
+        <section id="stage-result" class="hidden flex flex-col items-center justify-center text-center py-6">
+            <div class="relative mb-6">
+                <div class="w-24 h-24 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 overflow-hidden">
+                    <i class="fa-solid fa-heart text-white text-5xl"></i>
+                </div>
+                <span class="absolute -bottom-1 -right-1 bg-emerald-500 text-white text-xs px-2.5 py-1 rounded-full font-bold shadow-lg">
+                    <i class="fa-solid fa-circle-check"></i> 已治癒
+                </span>
+            </div>
+
+            <h2 class="text-3xl font-extrabold text-transparent bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text mb-2">AI 肚子痛好了！分析成功跑出！</h2>
+            <p class="text-sm text-slate-400 max-w-lg mb-6">你成功的幫模型清乾淨了資料、完成了排序視覺化，並建立了高水準的學術因果反思。</p>
+
+            <!-- Score Summary Cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-2xl mb-8">
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-800">
+                    <p class="text-xs text-slate-400 mb-1">第一關: 診斷除蟲</p>
+                    <p id="res-score-1" class="text-xl font-bold text-sky-400">-- / 50分</p>
+                </div>
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-800">
+                    <p class="text-xs text-slate-400 mb-1">第二關: 趨勢排序</p>
+                    <p id="res-score-2" class="text-xl font-bold text-indigo-400">-- / 30分</p>
+                </div>
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-800">
+                    <p class="text-xs text-slate-400 mb-1">第三關: 數據反思</p>
+                    <p id="res-score-3" class="text-xl font-bold text-amber-400">-- / 20分</p>
+                </div>
+                <div class="bg-gradient-to-tr from-sky-900/30 to-indigo-900/30 p-4 rounded-xl border border-indigo-500/20">
+                    <p class="text-xs text-indigo-300 mb-1 font-semibold">總得分</p>
+                    <p id="res-score-total" class="text-2xl font-extrabold text-white">0 / 100分</p>
+                </div>
+            </div>
+
+            <!-- Explanation of latest scientific discovery on Option B -->
+            <div id="science-discovery-card" class="bg-indigo-950/40 border border-indigo-500/20 p-5 rounded-xl max-w-2xl text-left mb-6 relative overflow-hidden">
+                <div class="absolute right-3 top-3 text-indigo-500/20 text-6xl pointer-events-none"><i class="fa-solid fa-graduation-cap"></i></div>
+                <h4 class="text-indigo-300 font-bold text-sm mb-2 uppercase tracking-wide flex items-center gap-2">
+                    <i class="fa-solid fa-star"></i> 21世紀必要的的數據素養：
+                </h4>
+                <p class="text-xs md:text-sm text-slate-300 leading-relaxed">
+                    在<strong>第 11 週「變數關係與因果推論」</strong>中，我們不能單憑寵物升、嬰兒降就斷定兩者具備因果關係。這在統計學上常是受到了<strong>第三變數（如都市化、房價、生活型態）</strong>影響的<strong>假性相關</strong>。
+                    <br><br>
+                    此外，<strong>台大林明仁教授研究團隊（Lin & Chen）最新大數據研究指出：</strong>在追蹤數百萬台灣家庭的出生登記與寵物登記發現，養狗家庭隨後生小孩的機率，居然高於沒養狗的家庭！這表明許多家庭會「先養狗來試水溫」，隨後再正式邁向生養小孩的家庭階段。寵物其實是生育的前奏試金石！
+                </p>
+            </div>
+
+            <button onclick="resetGame()" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl border border-slate-700 transition-all flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-rotate-left"></i> 再玩一次
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Custom Modal for Feedback Popups -->
+    <div id="feedback-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 text-center relative overflow-hidden shadow-2xl">
+            <div class="absolute -top-12 -left-12 w-40 h-40 bg-sky-500/15 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div id="modal-icon-container" class="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-bold">
+                <!-- Dynamic Icon -->
+            </div>
+            
+            <h3 id="modal-title" class="text-xl font-bold text-white mb-2">標題</h3>
+            <p id="modal-body" class="text-sm text-slate-400 leading-relaxed mb-6">內文說明</p>
+            
+            <button id="modal-close-btn" class="w-full py-3 bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-bold rounded-xl shadow-lg">
+                確認
+            </button>
+        </div>
+    </div>
+
+    <!-- Footer Meta -->
+    <footer class="w-full max-w-4xl text-center text-xs text-slate-500 pt-4 border-t border-slate-800/60 mt-4 z-10">
+        元智大學 大數據、政策資料處理與統計 期末擺攤專用線上系統 © 2026. All Rights Reserved.
+    </footer>
+
+    <!-- Game Logic Scripts -->
+    <script>
+        // 12 Cards Dataset Source
+        const allCards = [
+            { id: "01", city: "台北市", year: 2024, birth: "5.8%", pets: 12000, value_pets: 12000, isDirty: false, blind: "正常基準值" },
+            { id: "02", city: "新北市", year: 2024, birth: "6.2%", pets: 15000, value_pets: 15000, isDirty: false, blind: "正常基準值" },
+            { id: "03", city: "台中市", year: 2024, birth: "999.9%", pets: 14000, value_pets: 14000, isDirty: true, blind: "極端值 (Outlier) - 出生率999.9%極端不合理" },
+            { id: "04", city: "高雄市", year: 2024, birth: "5.5%", pets: "[空白]", value_pets: null, isDirty: true, blind: "遺失值 (Missing Value) - 寵物欄位漏填為空白" },
+            { id: "05", city: "桃園市", year: 2024, birth: "7.1%", pets: 11000, value_pets: 11000, isDirty: false, blind: "正常基準值" },
+            { id: "06", city: "西瓜", year: 2024, birth: "4.2%", pets: 8000, value_pets: 8000, isDirty: true, blind: "亂碼/誤植 (Data Error) - 主鍵為水果非屬行政區" },
+            { id: "07", city: "台南市", year: 2024, birth: "5.2%", pets: 9500, value_pets: 9500, isDirty: false, blind: "正常基準值" },
+            { id: "08", city: "新竹市", year: 2024, birth: "7.5%", pets: "-5,000", value_pets: -5000, isDirty: true, blind: "合理性錯誤 (Logical Error) - 寵物登記數不可能為負值" },
+            { id: "09", city: "彰化縣", year: 2024, birth: "6.8%", pets: 7000, value_pets: 7000, isDirty: false, blind: "正常基準值" },
+            { id: "10", city: "屏東縣", year: 1911, birth: "4.8%", pets: 6500, value_pets: 6500, isDirty: true, blind: "時空不一致 (Timeline Break) - 數據年度回溯到民國元年" },
+            { id: "11", city: "基隆市", year: 2024, birth: "4.5%", pets: 5500, value_pets: 5500, isDirty: false, blind: "正常基準值" },
+            { id: "12", city: "宜蘭縣", year: 2024, birth: "5.9%", pets: 5000, value_pets: 5000, isDirty: false, blind: "正常基準值" }
+        ];
+
+        // Global states
+        let selectedDiagnosticIds = [];
+        let cleanCards = [];
+        let sortedCardsSlots = [null, null, null, null, null, null, null];
+        let quizSelection = null;
+
+        // Scoring states
+        let score_1 = 0;
+        let score_2 = 0;
+        let score_3 = 0;
+
+        // Timers
+        let timerInterval;
+        let timeLeft = 30;
+
+        // Initial setup on boot
+        window.onload = function() {
+            resetGame();
+        };
+
+        function resetGame() {
+            clearInterval(timerInterval);
+            selectedDiagnosticIds = [];
+            cleanCards = [];
+            sortedCardsSlots = [null, null, null, null, null, null, null];
+            quizSelection = null;
+            score_1 = 0;
+            score_2 = 0;
+            score_3 = 0;
+            
+            // UI elements reset
+            document.getElementById('step-ind-1').className = "px-2 py-1 rounded bg-slate-800 text-slate-400";
+            document.getElementById('step-ind-2').className = "px-2 py-1 rounded bg-slate-800 text-slate-500";
+            document.getElementById('step-ind-3').className = "px-2 py-1 rounded bg-slate-800 text-slate-500";
+
+            document.getElementById('stage-welcome').classList.remove('hidden');
+            document.getElementById('stage-diagnostic').classList.add('hidden');
+            document.getElementById('stage-sorting').classList.add('hidden');
+            document.getElementById('stage-reflection').classList.add('hidden');
+            document.getElementById('stage-result').classList.add('hidden');
+        }
+
+        // Start Stage 1 (Diagnostics)
+        function startGame() {
+            document.getElementById('stage-welcome').classList.add('hidden');
+            document.getElementById('stage-diagnostic').classList.remove('hidden');
+            document.getElementById('step-ind-1').className = "px-2 py-1 rounded bg-sky-500 text-white font-bold shadow shadow-sky-500/20";
+            
+            // Reset Counter
+            document.getElementById('count-selected').innerText = "0";
+
+            // Populate Cards dynamically and shuffle
+            const shuffledCards = [...allCards].sort(() => Math.random() - 0.5);
+            const grid = document.getElementById('grid-cards');
+            grid.innerHTML = '';
+            
+            shuffledCards.forEach(card => {
+                const cardDiv = document.createElement('div');
+                cardDiv.id = `card-${card.id}`;
+                cardDiv.onclick = () => toggleCardSelect(card.id);
+                cardDiv.className = "bg-slate-850 border border-slate-800 hover:border-slate-700/80 p-3 rounded-xl cursor-pointer hover:scale-[1.02] transition-all select-none relative flex flex-col justify-between h-[115px]";
+                
+                cardDiv.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <span class="text-xs bg-slate-800 px-2 py-0.5 rounded font-mono text-slate-400">ID: ${card.id}</span>
+                        <span class="text-xs text-slate-500 font-bold">${card.year}年</span>
+                    </div>
+                    <div class="my-1.5">
+                        <p class="font-bold text-white text-base text-center">${card.city}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1 text-[10px] text-slate-400 border-t border-slate-800/80 pt-1.5">
+                        <div>
+                            <p class="text-[9px] text-slate-500 leading-none">出生率</p>
+                            <p class="font-bold text-slate-300 mt-0.5">${card.birth}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[9px] text-slate-500 leading-none">寵物登記</p>
+                            <p class="font-bold text-slate-300 mt-0.5">${card.pets}</p>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(cardDiv);
+            });
+
+            // Start Timer 1
+            timeLeft = 30;
+            document.getElementById('timer-1').innerText = timeLeft;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-1').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    autoSubmitDiagnostic();
+                }
+            }, 1000);
+        }
+
+        // Card Selection Toggle
+        function toggleCardSelect(id) {
+            const index = selectedDiagnosticIds.indexOf(id);
+            const cardDiv = document.getElementById(`card-${id}`);
+            
+            if (index > -1) {
+                // Deselect
+                selectedDiagnosticIds.splice(index, 1);
+                cardDiv.classList.remove('border-red-500/80', 'bg-red-950/20', 'shadow-lg', 'shadow-red-500/10');
+                cardDiv.classList.add('border-slate-800');
+            } else {
+                // Select only if under limit of 5
+                if (selectedDiagnosticIds.length >= 5) {
+                    showModal("<i class='fa-solid fa-triangle-exclamation text-amber-400'></i>", "診斷上限", "最多只能挑選 5 個髒資料卡牌喔！請取消現有選擇再點其他牌。", "bg-amber-500/10 text-amber-500 border border-amber-500/20");
+                    return;
+                }
+                selectedDiagnosticIds.push(id);
+                cardDiv.classList.add('border-red-500/80', 'bg-red-950/20', 'shadow-lg', 'shadow-red-500/10');
+                cardDiv.classList.remove('border-slate-800');
+            }
+            
+            document.getElementById('count-selected').innerText = selectedDiagnosticIds.length;
+        }
+
+        // Submit Diagnostics
+        function submitDiagnostic() {
+            if (selectedDiagnosticIds.length < 5) {
+                showModal("<i class='fa-solid fa-triangle-exclamation text-amber-400'></i>", "診斷尚未完成", `你目前只選了 ${selectedDiagnosticIds.length} 個髒資料，總共有 5 個致命雜訊隱藏其中。再仔細觀察看看！`, "bg-amber-500/10 text-amber-500 border border-amber-500/20");
+                return;
+            }
+            
+            clearInterval(timerInterval);
+            evaluateDiagnostic();
+        }
+
+        function autoSubmitDiagnostic() {
+            showModal("<i class='fa-solid fa-hourglass-end text-red-400'></i>", "時間到！", "第一關時間結束了，系統正在自動遞交您目前選擇的診斷結果...", "bg-red-500/10 text-red-400 border border-red-500/20");
+            evaluateDiagnostic();
+        }
+
+        function evaluateDiagnostic() {
+            // Correct dirty ids are: 03, 04, 06, 08, 10
+            const correctDirtyIds = ["03", "04", "06", "08", "10"];
+            let correctCount = 0;
+            
+            selectedDiagnosticIds.forEach(id => {
+                if (correctDirtyIds.includes(id)) {
+                    correctCount++;
+                }
+            });
+
+            score_1 = correctCount * 10; // Max 50 points
+
+            // Populate clean cards for stage 2
+            cleanCards = allCards.filter(card => !correctDirtyIds.includes(card.id));
+
+            let title = "";
+            let text = "";
+            let icon = "";
+            let colorClass = "";
+
+            if (correctCount === 5) {
+                title = "完美診斷！";
+                text = "太厲害了！你把 5 張隱含「極端值 (999.9%)」、「遺失值 (空白)」、「亂碼誤植 (西瓜)」、「邏輯負值」與「時空不統一」的髒資料完全剔除了！AI 肚子好了一大半。現在，請前進第二關進行排序分析！";
+                icon = "<i class='fa-solid fa-heart-circle-check text-emerald-400'></i>";
+                colorClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            } else {
+                title = "診斷不完全";
+                text = `你挑中了 ${correctCount} 個真正的髒資料卡牌。漏掉或選錯了 ${5 - correctCount} 個。真正的髒資料包含了：台中市(極端值999.9%)、高雄市(寵物遺失空白)、新竹市(寵物負數)、西瓜(亂碼)及屏東(民國元年的1911年)。\n\n系統已自動幫你完成清洗，請前進第二關！`;
+                icon = "<i class='fa-solid fa-shield-virus text-amber-400'></i>";
+                colorClass = "bg-amber-500/10 text-amber-500 border border-amber-500/20";
+            }
+
+            showModal(icon, title, text, colorClass, () => {
+                startSortingStage();
+            });
+        }
+
+        // Start Stage 2 (Sorting)
+        function startSortingStage() {
+            document.getElementById('stage-diagnostic').classList.add('hidden');
+            document.getElementById('stage-sorting').classList.remove('hidden');
+            
+            document.getElementById('step-ind-1').className = "px-2 py-1 rounded bg-slate-800 text-slate-500";
+            document.getElementById('step-ind-2').className = "px-2 py-1 rounded bg-indigo-500 text-white font-bold shadow shadow-indigo-500/20";
+
+            // Prepare Clean card pool (shuffle it initially)
+            const shuffledPool = [...cleanCards].sort(() => Math.random() - 0.5);
+            renderSortingDeck(shuffledPool);
+            renderSortingSlots();
+
+            // Start Timer 2
+            timeLeft = 20;
+            document.getElementById('timer-2').innerText = timeLeft;
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-2').innerText = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    autoSubmitSorting();
+                }
+            }, 1000);
+        }
+
+        function renderSortingDeck(pool) {
+            const container = document.getElementById('deck-clean');
+            container.innerHTML = '';
+            
+            pool.forEach(card => {
+                // If already slotted, don't show in pool
+                if (sortedCardsSlots.find(c => c && c.id === card.id)) return;
+
+                const cardDiv = document.createElement('div');
+                cardDiv.className = "bg-slate-800 border border-slate-700 p-2.5 rounded-lg text-center cursor-pointer hover:border-indigo-400 hover:scale-[1.03] transition-all flex flex-col justify-between h-24 select-none";
+                cardDiv.onclick = () => placeCardInSlot(card);
+
+                cardDiv.innerHTML = `
+                    <p class="font-bold text-white text-xs leading-none">${card.city}</p>
+                    <div class="my-1.5">
+                        <p class="text-[9px] text-slate-500">寵物登記數</p>
+                        <p class="font-bold text-indigo-400 text-sm leading-tight">${card.pets.toLocaleString()}</p>
+                    </div>
+                    <div class="border-t border-slate-700/60 pt-1 flex justify-between items-center text-[8px] text-slate-500">
+                        <span>出生率</span>
+                        <span class="font-bold text-slate-400">${card.birth}</span>
+                    </div>
+                `;
+                container.appendChild(cardDiv);
+            });
+        }
+
+        function renderSortingSlots() {
+            const slots = document.getElementsByClassName('slot');
+            for(let i=0; i<slots.length; i++) {
+                const card = sortedCardsSlots[i];
+                const slotDiv = slots[i];
+                
+                if (card) {
+                    slotDiv.className = "slot bg-indigo-950/40 border border-indigo-500/60 p-2 rounded-lg h-24 flex flex-col justify-between text-center cursor-pointer hover:bg-slate-850 hover:border-slate-700 transition-all select-none";
+                    slotDiv.onclick = () => removeCardFromSlot(i);
+                    slotDiv.innerHTML = `
+                        <div class="flex justify-between items-center text-[8px] text-slate-500 leading-none">
+                            <span class="font-mono bg-indigo-900 text-indigo-200 rounded px-1">位 ${i+1}</span>
+                            <span class="text-indigo-400"><i class="fa-solid fa-chevron-up"></i></span>
+                        </div>
+                        <p class="font-bold text-white text-xs">${card.city}</p>
+                        <div class="text-[9px]">
+                            <p class="text-slate-500 leading-none">寵物: <span class="font-bold text-indigo-300">${card.pets.toLocaleString()}</span></p>
+                            <p class="text-slate-500 mt-0.5 leading-none">出生: <span class="font-bold text-emerald-400">${card.birth}</span></p>
+                        </div>
+                    `;
+                } else {
+                    slotDiv.className = "slot border border-dashed border-slate-700 rounded-lg h-24 flex flex-col items-center justify-center text-[10px] text-slate-600 font-bold hover:border-slate-500 transition-all cursor-default";
+                    slotDiv.onclick = null;
+                    slotDiv.innerHTML = `位置 ${i + 1}`;
+                }
+            }
+        }
+
+        function placeCardInSlot(card) {
+            const emptyIndex = sortedCardsSlots.indexOf(null);
+            if (emptyIndex === -1) {
+                showModal("<i class='fa-solid fa-triangle-exclamation text-amber-400'></i>", "位置已滿", "所有位置都已經填滿了！若要調整，可以點擊上方排序卡牌取下。", "bg-amber-500/10 text-amber-500 border border-amber-500/20");
+                return;
+            }
+            sortedCardsSlots[emptyIndex] = card;
+            
+            // Re-render
+            renderSortingSlots();
+            
+            // Re-render deck (remove placed card)
+            const remainingPool = cleanCards.filter(c => !sortedCardsSlots.find(sc => sc && sc.id === c.id));
+            renderSortingDeck(remainingPool);
+        }
+
+        function removeCardFromSlot(index) {
+            sortedCardsSlots[index] = null;
+            
+            renderSortingSlots();
+            
+            const remainingPool = cleanCards.filter(c => !sortedCardsSlots.find(sc => sc && sc.id === c.id));
+            renderSortingDeck(remainingPool);
+        }
+
+        function resetSorting() {
+            sortedCardsSlots = [null, null, null, null, null, null, null];
+            renderSortingSlots();
+            renderSortingDeck(cleanCards);
+        }
+
+        function submitSorting() {
+            // Check if all slots filled
+            if (sortedCardsSlots.includes(null)) {
+                showModal("<i class='fa-solid fa-triangle-exclamation text-amber-400'></i>", "排序未完成", "你還有空缺位置尚未填入資料卡牌，請把 7 張乾淨卡牌全部排完才能遞交分析！", "bg-amber-500/10 text-amber-500 border border-amber-500/20");
+                return;
+            }
+            
+            clearInterval(timerInterval);
+            evaluateSorting();
+        }
+
+        function autoSubmitSorting() {
+            // Auto fill empty slots with remaining pool randomly so evaluation doesn't crash
+            const usedIds = sortedCardsSlots.filter(c => c !== null).map(c => c.id);
+            const remaining = cleanCards.filter(c => !usedIds.includes(c.id));
+            
+            for(let i=0; i<sortedCardsSlots.length; i++) {
+                if (sortedCardsSlots[i] === null) {
+                    sortedCardsSlots[i] = remaining.pop();
+                }
+            }
+            
+            showModal("<i class='fa-solid fa-hourglass-end text-red-400'></i>", "時間到！", "時間結束，系統自動封裝您目前的卡片位置進行排序遞交...", "bg-red-500/10 text-red-400 border border-red-500/20");
+            evaluateSorting();
+        }
+
+        function evaluateSorting() {
+            // Ideal ascending order of value_pets:
+            // 宜蘭(5000) -> 基隆(5500) -> 彰化(7000) -> 台南(9500) -> 桃園(11000) -> 台北(12000) -> 新北(15000)
+            const idealOrder = ["12", "11", "09", "07", "05", "01", "02"];
+            
+            let correctPositions = 0;
+            for(let i=0; i<7; i++) {
+                if (sortedCardsSlots[i] && sortedCardsSlots[i].id === idealOrder[i]) {
+                    correctPositions++;
+                }
+            }
+
+            // Scoring calculation (Max 30 points)
+            // If completely right -> 30. Otherwise fraction
+            score_2 = Math.round((correctPositions / 7) * 30);
+
+            let title = "";
+            let text = "";
+            let icon = "";
+            let colorClass = "";
+
+            if (correctPositions === 7) {
+                title = "完美視覺化排序！";
+                text = "天啊！你的大數據敏感度太驚人了。你成功地依據寵物登記量由少到多完成了 7 張卡牌排序。這正是手動的變數排序與資料探勘。接著，前進最後一關回答核心反思題！";
+                icon = "<i class='fa-solid fa-award text-emerald-400 text-3xl'></i>";
+                colorClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            } else {
+                title = "排序不盡完美";
+                text = `你在 7 個順序位置中正確排置了 ${correctPositions} 個。正確答案應該是：宜蘭(5千)➔基隆(5.5千)➔彰化(7千)➔台南(9.5千)➔桃園(1.1萬)➔台北(1.2萬)➔新北(1.5萬)。\n\n不過別擔心！數據排序分析與連帶的嬰兒出生率變化趨勢已經生成，請前進第三關！`;
+                icon = "<i class='fa-solid fa-circle-exclamation text-amber-400'></i>";
+                colorClass = "bg-amber-500/10 text-amber-500 border border-amber-500/20";
+            }
+
+            showModal(icon, title, text, colorClass, () => {
+                startReflectionStage();
+            });
+        }
+
+        // Start Stage 3 (Reflection)
+        function startReflectionStage() {
+            document.getElementById('stage-sorting').classList.add('hidden');
+            document.getElementById('stage-reflection').classList.remove('hidden');
+
+            document.getElementById('step-ind-2').className = "px-2 py-1 rounded bg-slate-800 text-slate-500";
+            document.getElementById('step-ind-3').className = "px-2 py-1 rounded bg-amber-500 text-white font-bold shadow shadow-amber-500/20";
+        }
+
+        function selectOption(opt) {
+            quizSelection = opt;
+            
+            // Styling resets
+            const btnA = document.getElementById('option-A');
+            const btnB = document.getElementById('option-B');
+
+            btnA.className = "option-btn text-left p-4 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-850 hover:border-slate-600 transition-all flex items-start gap-3";
+            btnB.className = "option-btn text-left p-4 rounded-xl bg-slate-800/80 border border-slate-700/60 hover:bg-slate-850 hover:border-slate-600 transition-all flex items-start gap-3";
+
+            // Style active
+            const activeBtn = document.getElementById(`option-${opt}`);
+            activeBtn.className = "option-btn text-left p-4 rounded-xl bg-indigo-950/40 border-2 border-indigo-500/80 shadow-lg shadow-indigo-500/10 transition-all flex items-start gap-3";
+
+            // Enable submit button
+            const submitBtn = document.getElementById('btn-submit-quiz');
+            submitBtn.disabled = false;
+            submitBtn.className = "px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold rounded-xl shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2 cursor-pointer";
+        }
+
+        function submitQuiz() {
+            if (!quizSelection) return;
+
+            let title = "";
+            let text = "";
+            let icon = "";
+            let colorClass = "";
+
+            if (quizSelection === 'B') {
+                score_3 = 20; // Correct option (20 points)
+                title = "答對了！展現卓越數據素養";
+                text = "完全正確！這是第 11 週「變數分析」的核心真諦：『相關不等於因果』。寵物上升、嬰兒下降只因同受高房價和都市化等「第三隱藏變數」推拉。\n\n更有趣的是，台大林明仁教授團隊最新研究更發現：在台灣很多家庭是先養了寵物（特別是狗）後，過幾年更有信心生小孩。寵物其實是生小孩的『試溫前奏』，而非替代品！這徹底翻轉了社會既定偏誤！";
+                icon = "<i class='fa-solid fa-graduation-cap text-emerald-400 text-3xl'></i>";
+                colorClass = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+            } else {
+                score_3 = 0;
+                title = "可惜！落入了統計盲點陷阱";
+                text = "哎呀！這是典型的統計學誤區——落入「假性相關（Spurious Correlation）」的因果謬誤！\n\n在第 11 週我們強調過，兩者雖呈現強烈負相關，但不代表因果關係。少子化與寵物興起都是受到「都市化程度、生活高壓與高房價（第三變數）」的影響。且最新研究顯示，養寵物家庭後續生小孩的機率其實更高！寵物是育兒能力的『試金石』而非替代品！";
+                icon = "<i class='fa-solid fa-triangle-exclamation text-red-400'></i>";
+                colorClass = "bg-red-500/10 text-red-400 border border-red-500/20";
+            }
+
+            showModal(icon, title, text, colorClass, () => {
+                showResultsStage();
+            });
+        }
+
+        // Final result presentation
+        function showResultsStage() {
+            document.getElementById('stage-reflection').classList.add('hidden');
+            document.getElementById('stage-result').classList.remove('hidden');
+
+            document.getElementById('step-ind-3').className = "px-2 py-1 rounded bg-slate-800 text-slate-500";
+
+            // Update scores UI
+            document.getElementById('res-score-1').innerText = `${score_1} / 50分`;
+            document.getElementById('res-score-2').innerText = `${score_2} / 30分`;
+            document.getElementById('res-score-3').innerText = `${score_3} / 20分`;
+            
+            const total = score_1 + score_2 + score_3;
+            document.getElementById('res-score-total').innerText = `${total} / 100分`;
+
+            // Change robot image to cured
+            const robotImg = document.getElementById('robot-img');
+            robotImg.src = "https://static.vecteezy.com/system/resources/previews/055/789/816/non_2x/cute-cartoon-robot-with-smiling-face-artificial-intelligence-friendly-android-digital-illustration-futuristic-technology-sci-fi-bot-ai-concept-modern-automation-character-design-vector.jpg"; // Keeping identical source but visually cleared by modal
+        }
+
+        // Custom UI Modal Engine
+        function showModal(iconHTML, title, bodyText, borderThemeClass, onCloseCallback) {
+            const modal = document.getElementById('feedback-modal');
+            const iconContainer = document.getElementById('modal-icon-container');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const closeBtn = document.getElementById('modal-close-btn');
+
+            modal.classList.remove('hidden');
+            iconContainer.innerHTML = iconHTML;
+            iconContainer.className = `w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-bold ${borderThemeClass}`;
+            modalTitle.innerText = title;
+            modalBody.innerHTML = bodyText.replace(/\n/g, "<br>");
+
+            closeBtn.onclick = function() {
+                modal.classList.add('hidden');
+                if (onCloseCallback) onCloseCallback();
+            };
+        }
+    </script>
+</body>
+</html>
+
+好玩遊戲
